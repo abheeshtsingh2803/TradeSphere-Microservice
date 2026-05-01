@@ -1,0 +1,4 @@
+rootProject.name = 'TradeSphere-Microservice'
+include 'order-service'
+include 'inventory-service'
+include 'product-service'
