@@ -2,8 +2,7 @@ package com.tradesphere.controller;
 
 import com.tradesphere.dto.ProductRequest;
 import com.tradesphere.dto.ProductResponse;
-import com.tradesphere.model.Product;
-import com.tradesphere.service.ProductService;
+import com.tradesphere.inventoryservice.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
