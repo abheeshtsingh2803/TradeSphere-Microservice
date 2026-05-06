@@ -1,7 +1,7 @@
 package com.tradesphere.inventoryservice.service;
 
-import com.tradesphere.dto.ProductRequest;
-import com.tradesphere.dto.ProductResponse;
+import com.tradesphere.inventoryservice.dto.ProductRequest;
+import com.tradesphere.inventoryservice.dto.ProductResponse;
 import com.tradesphere.inventoryservice.model.Product;
 import com.tradesphere.inventoryservice.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
