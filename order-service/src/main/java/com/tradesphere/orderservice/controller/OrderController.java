@@ -5,6 +5,7 @@ import com.tradesphere.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -15,8 +16,8 @@ public class OrderController {
 
     @PostMapping("/place-order")
     @ResponseStatus(HttpStatus.CREATED)
-    public String placeOrder(@RequestBody OrderRequest orderRequest) {
-        orderService.placeOrder(orderRequest);
-        return "Order placed successfully";
+    public Mono<String> placeOrder(@RequestBody OrderRequest request) {
+        return orderService.placeOrder(request)
+                .thenReturn("Order placed successfully");
     }
 }

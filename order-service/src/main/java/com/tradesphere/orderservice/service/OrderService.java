@@ -7,8 +7,10 @@ import com.tradesphere.orderservice.model.Order;
 import com.tradesphere.orderservice.model.OrderLineItems;
 import com.tradesphere.orderservice.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.List;
@@ -19,12 +21,16 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final WebClient webClient;
-    public void placeOrder(OrderRequest orderRequest) {
+    private final WebClient.Builder webClientBuilder;
+
+    @Value("${inventory.service.url}")
+    private String inventoryServiceUrl;
+
+    public Mono<Void> placeOrder(OrderRequest orderRequest) {
 
         if (orderRequest.getOrderLineItemsDtoList() == null ||
                 orderRequest.getOrderLineItemsDtoList().isEmpty()) {
-            throw new IllegalArgumentException("Order items cannot be null or empty");
+            return Mono.error(new IllegalArgumentException("Order items cannot be null or empty"));
         }
 
         List<OrderLineItems> orderLineItemsList = orderRequest.getOrderLineItemsDtoList()
@@ -40,39 +46,39 @@ public class OrderService {
                 .map(OrderLineItems::getSkuCode)
                 .toList();
 
-        InventoryResponse[] inventoryResponses = webClient.get()
-                .uri("http://localhost:8082/api/inventory",
+        return webClientBuilder.build().get()
+                .uri("http://inventory-service/api/inventory",
                         uriBuilder -> uriBuilder
                                 .queryParam("skuCode", skuCodes)
                                 .build())
+
                 .retrieve()
                 .bodyToMono(InventoryResponse[].class)
-                .block();
+                .flatMap(inventoryResponses -> {
 
-        if (inventoryResponses == null) {
-            throw new IllegalStateException("Inventory service did not respond");
-        }
+                    boolean allProductsAvailable = orderLineItemsList.stream()
+                            .allMatch(orderItem -> {
+                                InventoryResponse inventoryResponse = Arrays.stream(inventoryResponses)
+                                        .filter(inv -> inv.getSkuCode().equals(orderItem.getSkuCode()))
+                                        .findFirst()
+                                        .orElse(null);
 
-        // UPDATED VALIDATION LOGIC
-        boolean allProductsAvailable = orderLineItemsList.stream()
-                .allMatch(orderItem -> {
-                    InventoryResponse inventoryResponse = Arrays.stream(inventoryResponses)
-                            .filter(inv -> inv.getSkuCode().equals(orderItem.getSkuCode()))
-                            .findFirst()
-                            .orElse(null);
+                                if (inventoryResponse == null) {
+                                    throw new IllegalArgumentException(
+                                            "Product with SKU: " + orderItem.getSkuCode() + " not found in inventory");
+                                }
 
-                    if (inventoryResponse == null) {
-                        throw new IllegalArgumentException("Product with SKU: " + orderItem.getSkuCode() + " not found in inventory");
+                                return inventoryResponse.getQuantity() >= orderItem.getQuantity();
+                            });
+
+                    if (allProductsAvailable) {
+                        orderRepository.save(order); // ⚠️ blocking (see note below)
+                        return Mono.empty();
+                    } else {
+                        return Mono.error(new IllegalArgumentException(
+                                "Insufficient quantity available for one or more products"));
                     }
-
-                    return inventoryResponse.getQuantity() >= orderItem.getQuantity();
                 });
-
-        if (allProductsAvailable) {
-            orderRepository.save(order);
-        } else {
-            throw new IllegalArgumentException("Insufficient quantity available for one or more products");
-        }
     }
 
 
