@@ -1,4 +1,4 @@
-package com.tradesphere.inventoryservice.model;
+package com.tradesphere.productservice.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

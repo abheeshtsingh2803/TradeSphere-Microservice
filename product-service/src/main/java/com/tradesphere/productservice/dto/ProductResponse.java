@@ -1,4 +1,4 @@
-package com.tradesphere.inventoryservice.dto;
+package com.tradesphere.productservice.dto;
 
 import lombok.Builder;
 import lombok.Data;

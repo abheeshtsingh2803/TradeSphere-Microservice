@@ -1,9 +1,9 @@
-package com.tradesphere.inventoryservice.service;
+package com.tradesphere.productservice.service;
 
-import com.tradesphere.inventoryservice.dto.ProductRequest;
-import com.tradesphere.inventoryservice.dto.ProductResponse;
-import com.tradesphere.inventoryservice.model.Product;
-import com.tradesphere.inventoryservice.repository.ProductRepository;
+import com.tradesphere.productservice.dto.ProductRequest;
+import com.tradesphere.productservice.dto.ProductResponse;
+import com.tradesphere.productservice.model.Product;
+import com.tradesphere.productservice.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

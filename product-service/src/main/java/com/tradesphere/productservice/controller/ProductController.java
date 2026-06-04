@@ -1,8 +1,8 @@
-package com.tradesphere.inventoryservice.controller;
+package com.tradesphere.productservice.controller;
 
-import com.tradesphere.inventoryservice.dto.ProductRequest;
-import com.tradesphere.inventoryservice.dto.ProductResponse;
-import com.tradesphere.inventoryservice.service.ProductService;
+import com.tradesphere.productservice.dto.ProductRequest;
+import com.tradesphere.productservice.dto.ProductResponse;
+import com.tradesphere.productservice.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;

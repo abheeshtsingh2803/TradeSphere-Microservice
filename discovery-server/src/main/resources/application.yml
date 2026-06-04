@@ -9,3 +9,5 @@ eureka:
   client:
     register-with-eureka: false
     fetch-registry: false
+  username: ${EUREKA_USERNAME:user}
+  password: ${EUREKA_PASSWORD:password}
