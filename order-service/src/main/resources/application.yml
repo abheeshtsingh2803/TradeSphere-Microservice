@@ -25,3 +25,40 @@ eureka:
 inventory:
   service:
     url: http://inventory-service
+
+
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+    health:
+        show-details: always
+
+#Resilience4j configuration for circuit breaker
+resilence4j:
+  circuitbreaker:
+    instances:
+      inventory:
+        registerHealthIndicator: true
+        eventConsumerBufferSize: 10
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
+  timelimiter:
+    instances:
+      inventory:
+        timeout-duration: 3
+
+  retry:
+    instances:
+      inventory:
+        maxAttempts: 3
+        waitDuration: 5s
