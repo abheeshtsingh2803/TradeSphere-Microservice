@@ -16,6 +16,8 @@ dependencies {
     // Core Spring Boot
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+    implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
 
     // Database
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
@@ -35,6 +37,7 @@ dependencies {
 
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
 }
 
 test {

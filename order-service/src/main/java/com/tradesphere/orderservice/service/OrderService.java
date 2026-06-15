@@ -6,6 +6,8 @@ import com.tradesphere.orderservice.dto.OrderRequest;
 import com.tradesphere.orderservice.model.Order;
 import com.tradesphere.orderservice.model.OrderLineItems;
 import com.tradesphere.orderservice.repository.OrderRepository;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final WebClient.Builder webClientBuilder;
+    private final Tracer tracer;
 
     @Value("${inventory.service.url}")
     private String inventoryServiceUrl;
@@ -46,39 +49,45 @@ public class OrderService {
                 .map(OrderLineItems::getSkuCode)
                 .toList();
 
-        return webClientBuilder.build().get()
-                .uri("http://inventory-service/api/inventory",
-                        uriBuilder -> uriBuilder
-                                .queryParam("skuCode", skuCodes)
-                                .build())
+        Span inventoryServiceLookUp = tracer.nextSpan().name("InventoryServiceLookUp");
 
-                .retrieve()
-                .bodyToMono(InventoryResponse[].class)
-                .flatMap(inventoryResponses -> {
+        try(Tracer.SpanInScope spanInScope = tracer.withSpan(inventoryServiceLookUp.start())) {
+            return webClientBuilder.build().get()
+                    .uri("http://inventory-service/api/inventory",
+                            uriBuilder -> uriBuilder
+                                    .queryParam("skuCode", skuCodes)
+                                    .build())
 
-                    boolean allProductsAvailable = orderLineItemsList.stream()
-                            .allMatch(orderItem -> {
-                                InventoryResponse inventoryResponse = Arrays.stream(inventoryResponses)
-                                        .filter(inv -> inv.getSkuCode().equals(orderItem.getSkuCode()))
-                                        .findFirst()
-                                        .orElse(null);
+                    .retrieve()
+                    .bodyToMono(InventoryResponse[].class)
+                    .flatMap(inventoryResponses -> {
 
-                                if (inventoryResponse == null) {
-                                    throw new IllegalArgumentException(
-                                            "Product with SKU: " + orderItem.getSkuCode() + " not found in inventory");
-                                }
+                        boolean allProductsAvailable = orderLineItemsList.stream()
+                                .allMatch(orderItem -> {
+                                    InventoryResponse inventoryResponse = Arrays.stream(inventoryResponses)
+                                            .filter(inv -> inv.getSkuCode().equals(orderItem.getSkuCode()))
+                                            .findFirst()
+                                            .orElse(null);
 
-                                return inventoryResponse.getQuantity() >= orderItem.getQuantity();
-                            });
+                                    if (inventoryResponse == null) {
+                                        throw new IllegalArgumentException(
+                                                "Product with SKU: " + orderItem.getSkuCode() + " not found in inventory");
+                                    }
 
-                    if (allProductsAvailable) {
-                        orderRepository.save(order); // ⚠️ blocking (see note below)
-                        return Mono.empty();
-                    } else {
-                        return Mono.error(new IllegalArgumentException(
-                                "Insufficient quantity available for one or more products"));
-                    }
-                });
+                                    return inventoryResponse.getQuantity() >= orderItem.getQuantity();
+                                });
+
+                        if (allProductsAvailable) {
+                            orderRepository.save(order); // ⚠️ blocking (see note below)
+                            return Mono.empty();
+                        } else {
+                            return Mono.error(new IllegalArgumentException(
+                                    "Insufficient quantity available for one or more products"));
+                        }
+                    });
+        } finally {
+            inventoryServiceLookUp.end();
+        }
     }
 
 
