@@ -3,6 +3,7 @@ package com.tradesphere.orderservice.service;
 import com.tradesphere.orderservice.dto.InventoryResponse;
 import com.tradesphere.orderservice.dto.OrderLineItemsDto;
 import com.tradesphere.orderservice.dto.OrderRequest;
+import com.tradesphere.orderservice.event.OrderPlacedEvent;
 import com.tradesphere.orderservice.model.Order;
 import com.tradesphere.orderservice.model.OrderLineItems;
 import com.tradesphere.orderservice.repository.OrderRepository;
@@ -10,6 +11,7 @@ import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -25,6 +27,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final WebClient.Builder webClientBuilder;
     private final Tracer tracer;
+    private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
     @Value("${inventory.service.url}")
     private String inventoryServiceUrl;
@@ -79,6 +82,7 @@ public class OrderService {
 
                         if (allProductsAvailable) {
                             orderRepository.save(order); // ⚠️ blocking (see note below)
+                            kafkaTemplate.send("notificationTopic", new OrderPlacedEvent(order.getOrderNumber()));
                             return Mono.empty();
                         } else {
                             return Mono.error(new IllegalArgumentException(
